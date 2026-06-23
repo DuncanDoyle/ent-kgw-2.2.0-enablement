@@ -1,0 +1,24 @@
+apiVersion: enterprisekgateway.solo.io/v1alpha1
+kind: EnterpriseKgatewayTrafficPolicy
+metadata:
+  name: httpbin-allowlist
+  namespace: acl
+spec:
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: httpbin-allowlist
+  acl:
+    # Default deny — only explicitly allowed CIDRs get through.
+    defaultAction: deny
+    rules:
+    - name: allow-internal
+      cidrs:
+      - "10.10.0.0/16"
+      action: allow
+    denyResponse:
+      statusCode: 403
+      # X-Blocked-By carries the matched rule name on denial, useful for log
+      # correlation and debugging. Value is the rule 'name', or "default" for
+      # default-action denials.
+      blockedByHeaderName: X-Blocked-By

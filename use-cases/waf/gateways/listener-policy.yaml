@@ -1,0 +1,18 @@
+apiVersion: gateway.kgateway.dev/v1alpha1
+kind: ListenerPolicy
+metadata:
+  name: xff-trust
+  namespace: waf
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: gw
+  default:
+    httpSettings:
+      # Trust the connecting client's IP from X-Forwarded-For so that REMOTE_ADDR
+      # in Coraza reflects the real client IP rather than the Envoy hop IP.
+      # xffNumTrustedHops: 1 strips the rightmost entry Envoy appended, leaving
+      # the original client IP as REMOTE_ADDR.
+      useRemoteAddress: true
+      xffNumTrustedHops: 1

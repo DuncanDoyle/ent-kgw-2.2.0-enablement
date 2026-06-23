@@ -1,0 +1,23 @@
+apiVersion: waf.solo.io/v1alpha1
+kind: WAFPolicy
+metadata:
+  name: custom-rules-waf
+  namespace: waf
+spec:
+  # Body inspection is opt-in. HeadersAndBody mode buffers the full request body
+  # so phase:2 rules can inspect it. This adds latency proportional to body size.
+  processingConfig:
+    request:
+      mode: HeadersAndBody
+  ruleEngineSettings:
+    configMap:
+      name: custom-waf-rules
+      namespace: waf
+      keys:
+        - rule-engine.conf
+  customDirectives:
+    - configMap:
+        name: custom-waf-rules
+        namespace: waf
+        keys:
+          - custom-rules.conf

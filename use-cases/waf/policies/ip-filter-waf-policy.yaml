@@ -1,0 +1,17 @@
+apiVersion: waf.solo.io/v1alpha1
+kind: WAFPolicy
+metadata:
+  name: ip-filter-waf
+  namespace: waf
+spec:
+  ruleEngineSettings:
+    inline: |
+      SecRuleEngine On
+  customDirectives:
+    - inline: |
+        # Block requests from a known bad IP.
+        # REMOTE_ADDR is set to the real client IP by the ListenerPolicy
+        # (useRemoteAddress: true, xffNumTrustedHops: 1), which strips Envoy's
+        # own hop from the XFF chain before Coraza evaluates the request.
+        SecRule REMOTE_ADDR "@ipMatch 1.2.3.4" \
+          "id:2001,phase:1,deny,status:403,msg:'Blocked IP address'"

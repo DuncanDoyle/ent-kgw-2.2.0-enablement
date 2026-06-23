@@ -1,0 +1,50 @@
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: api-example-com
+  namespace: default
+  labels:
+    app: apis
+    oauth-oidc-acf-auth: "true"
+    basic-auth: "true"
+spec:
+  parentRefs:
+    - name: gw
+      namespace: ingress-gw
+      # Bind to a specific listener in the parentRef (Gateway) using sectionName field.
+      # sectionName: http
+      # port: 443
+  hostnames:
+    - "api.example.com"
+  rules:
+    - matches:  
+      - path:
+          type: PathPrefix
+          value: /
+      filters:
+      - type: CORS
+        cors:
+          allowOrigins: 
+          - http://api.example.com
+          allowMethods: 
+          - GET
+          - HEAD
+          - POST
+          allowHeaders: 
+          - Accept
+          - Accept-Language
+          - Content-Language
+          - Content-Type
+          - Range
+      backendRefs:
+      - name: httpbin
+        namespace: httpbin
+        port: 8000      
+      # timeouts:
+      #   request: 20s
+      #   backendRequest: 7s
+      # # Delegate to another HTTPRoute
+      # - group: gateway.networking.k8s.io
+      #   kind: HTTPRoute
+      #   name: httpbin
+      #   namespace: httpbin

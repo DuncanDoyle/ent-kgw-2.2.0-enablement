@@ -1,0 +1,51 @@
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: api-example-com
+  namespace: gwapi151
+  labels:
+    app: apis
+    oauth-oidc-acf-auth: "true"
+    basic-auth: "true"
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: ListenerSet
+      name: gw-listenerset
+      namespace: gwapi151
+      # Bind to a specific listener in the parentRef (ListenerSet) using sectionName field.
+      sectionName: http-api
+  hostnames:
+    - "api.example.com"
+  rules:
+    - matches:  
+      - path:
+          type: PathPrefix
+          value: /
+      filters:
+      - type: CORS
+        cors:
+          allowOrigins: 
+          - http://api.example.com
+          allowMethods: 
+          - GET
+          - HEAD
+          - POST
+          allowHeaders: 
+          - Accept
+          - Accept-Language
+          - Content-Language
+          - Content-Type
+          - Range
+      backendRefs:
+      - name: httpbin
+        namespace: gwapi151-httpbin
+        port: 8000      
+      # timeouts:
+      #   request: 20s
+      #   backendRequest: 7s
+      # # Delegate to another HTTPRoute
+      # - group: gateway.networking.k8s.io
+      #   kind: HTTPRoute
+      #   name: httpbin
+      #   namespace: httpbin

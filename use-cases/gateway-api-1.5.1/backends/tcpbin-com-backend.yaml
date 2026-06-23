@@ -1,0 +1,15 @@
+apiVersion: gateway.kgateway.dev/v1alpha1
+kind: Backend
+metadata:
+  name: tcpbin-com
+  namespace: gwapi151
+spec:
+  type: Static
+  static:
+    hosts:
+      - host: tcpbin.com
+        # port: 4242
+        # TLS port
+        port: 4243
+        # insecureSkipVerify: true
+        

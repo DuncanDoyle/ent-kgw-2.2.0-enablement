@@ -1,0 +1,76 @@
+apiVersion: enterprisekgateway.solo.io/v1alpha1
+kind: EnterpriseKgatewayParameters
+metadata:
+  name: shared-ent-kgateway-parameters
+  namespace: kgateway-system
+spec:
+  # # dedicatedExtensions: {}
+  kube:
+    deployment:
+      # Disable control of replicas on the deployment, so this can be controlled by an external entity like HPA
+      # omitReplicas: true
+      replicas: 1
+    envoyContainer:
+      bootstrap:
+        logLevel: info
+      env:
+      - name: OTEL_RESOURCE_ATTRIBUTES
+        value: "environment=detector,resource=attribute"
+      # image:
+      #   # digest:
+      #   pullPolicy: IfNotPresent
+      #   registry: docker.io
+      #   repository: duncandoyle/envoy-wrapper
+      #   tag: 2.1.0-beta.2
+    sharedExtensions:
+      extCache:
+        enabled: true
+        # container:
+        #   image:
+        #     # digest:
+        #     pullPolicy: IfNotPresent
+        #     registry: docker.io
+        #     repository: duncandoyle/redis
+        #     tag: 7.2.4-alpine
+      extauth:
+        enabled: true
+        # container:
+        #   image:
+        #     # digest:
+        #     pullPolicy: IfNotPresent
+        #     registry: docker.io
+        #     repository: duncandoyle/ext-auth-service
+        #     tag: 0.71.4
+        replicas: 1
+      ratelimiter:
+        enabled: true
+        # container:
+        #   image:
+        #     # digest:
+        #     pullPolicy: IfNotPresent
+        #     registry: docker.io
+        #     repository: duncandoyle/rate-limiter
+        #     tag: 0.16.4
+      waf:
+        enabled: false        
+    # istio:
+    #   istioProxyContainer:
+    #     istioDiscoveryAddress: <istiod-service-address> # such as istiod-main.istio-system.svc:15012
+    #     istioMetaClusterId: <cluster-ID> ## such as the cluster name
+    #     istioMetaMeshId: <meta-mesh-ID> ## such as the cluster name
+    # sdsContainer:
+    #   image:
+    #     registry: cr.kgateway.dev/kgateway-dev
+    #     repository: sds
+    #     tag: v2.1.0-main
+  # kube: 
+  #   service:
+  #     type: NodePort
+  #     extraLabels: 
+  #       gateway: custom
+  #   podTemplate: 
+  #     extraLabels:
+  #       gateway: custom
+  #     securityContext: 
+  #       fsGroup: 50000
+  #       runAsUser: 50000

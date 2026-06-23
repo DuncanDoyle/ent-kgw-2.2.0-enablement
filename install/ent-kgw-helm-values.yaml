@@ -1,0 +1,64 @@
+# image:
+#   # -- Set the default image registry.
+#   registry: docker.io/duncandoyle
+#   # -- Set the default image tag.
+#   tag: "2.1.0-beta.2"
+#   # -- Set the default image pull policy.
+#   pullPolicy: IfNotPresent
+
+# -- Map of GatewayClass names to GatewayParameters references that will be set on
+#    the default GatewayClasses managed by kgateway. Each entry must define both the
+#    name and namespace of the GatewayParameters resource.
+#    The default GatewayClasses managed by kgateway are:
+#    - enterprise-kgateway
+#    Example:
+#    gatewayClassParametersRefs:
+#      enterprise-kgateway:
+#        name: shared-gwp
+#        namespace: kgateway-system
+gatewayClassParametersRefs:
+  enterprise-kgateway:
+    group: enterprisekgateway.solo.io
+    kind: EnterpriseKgatewayParameters
+    name: shared-ent-kgateway-parameters
+    namespace: kgateway-system
+
+controller:
+  logLevel: info
+  extraEnv:
+    # Set {STANDARD | STRICT} validation
+    KGW_ROUTE_REPLACEMENT_MODE: STANDARD
+    # Set the namespace in which to configure global policies: https://docs.solo.io/gateway/2.0.x/about/policies/global-attachment/
+    KGW_GLOBAL_POLICY_NAMESPACE: kgateway-system
+    # Enable Istio integratio with Auto-mTLS.
+    KGW_ENABLE_ISTIO_AUTO_MTLS: false
+    # Enable weighted routes
+    # KGW_WEIGHTED_ROUTE_PRECEDENCE: true
+# discoveryNamespaceSelectors:
+  # - matchExpressions:
+  #   - key: environment
+  #     operator: In
+  #     values:
+  #     - prod
+  #   matchLabels:
+  #     version: v2
+  # - matchLabels:
+  #     version: v3
+  # - matchLabels:
+#       kubernetes.io/metadata.name: gloo-system
+#   - matchLabels:
+#       kubernetes.io/metadata.name: ingress-gw
+#   - matchLabels:
+#       kubernetes.io/metadata.name: default
+#   - matchLabels:
+#       kubernetes.io/metadata.name: httpbin
+#   - matchLabels:
+#       kubernetes.io/metadata.name: keycloak
+#   - matchLabels:
+#       kubernetes.io/metadata.name: telemetry
+#   - matchLabels:
+#       kubernetes.io/metadata.name: secrets
+# policyMerge:
+#   trafficPolicy:
+#     transformation: DeepMerge
+#     extProc: DeepMerge

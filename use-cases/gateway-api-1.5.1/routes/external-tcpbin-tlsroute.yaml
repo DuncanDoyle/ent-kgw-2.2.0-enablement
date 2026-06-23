@@ -1,0 +1,22 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: TLSRoute
+metadata:
+  name: external-tcpbin
+  namespace: gwapi151
+  labels:
+    app: tcp-echo
+spec:
+  parentRefs:
+  - group: gateway.networking.k8s.io
+    kind: ListenerSet
+    name: gw-listenerset
+    namespace: gwapi151
+    sectionName: tls
+  hostnames:
+  - tcpbin.com
+  rules:
+  - backendRefs:
+    - name: tcpbin-com
+      namespace: gwapi151
+      group: gateway.kgateway.dev
+      kind: Backend

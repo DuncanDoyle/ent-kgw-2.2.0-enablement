@@ -1,0 +1,14 @@
+apiVersion: enterprisekgateway.solo.io/v1alpha1
+kind: EnterpriseKgatewayTrafficPolicy
+metadata:
+  name: httpbin-waf
+  namespace: waf
+spec:
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: httpbin
+  entWAF:
+    wafPolicyRef:
+      name: httpbin-waf
+      namespace: waf

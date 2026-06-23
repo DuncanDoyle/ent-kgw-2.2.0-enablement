@@ -1,0 +1,21 @@
+apiVersion: enterprisekgateway.solo.io/v1alpha1
+kind: EnterpriseKgatewayTrafficPolicy
+metadata:
+  name: httpbin-byo-redis
+  namespace: byo-redis
+spec:
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: httpbin
+  # Require OIDC login via Keycloak; session stored in valkey-auth.
+  entExtAuth:
+    authConfigRef:
+      name: httpbin-oidc
+      namespace: byo-redis
+  # Limit to 3 requests/min; counters stored in valkey-ratelimit.
+  entRateLimit:
+    global:
+      rateLimitConfigRefs:
+      - name: httpbin-ratelimit
+        namespace: byo-redis

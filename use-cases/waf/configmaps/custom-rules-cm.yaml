@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: custom-waf-rules
+  namespace: waf
+data:
+  # Stored in a ConfigMap so rules can be updated without redeploying the WAFPolicy.
+  # The WAF server picks up changes automatically when the ConfigMap is updated.
+  rule-engine.conf: |
+    SecRuleEngine On
+
+  custom-rules.conf: |
+    # Enable JSON body parsing for application/json requests so that ARGS:json.*
+    # variables are populated for phase:2 body inspection rules below.
+    SecRule REQUEST_HEADERS:Content-Type "@rx ^application/json" \
+      "id:3001,phase:1,pass,nolog,ctl:requestBodyProcessor=JSON"
+
+    # Block requests that contain a known sensitive pattern in the 'secret' field.
+    # Demonstrates body inspection: the request is allowed past the gateway only if
+    # the body does not contain this pattern.
+    SecRule ARGS:json.secret "@contains leaked-secret" \
+      "id:3002,phase:2,deny,status:403,msg:'Sensitive data pattern detected in request body'"

@@ -1,0 +1,23 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: mtls-example-com
+  namespace: gwapi151
+spec:
+  parentRefs:
+  - group: gateway.networking.k8s.io
+    kind: ListenerSet
+    name: gw-listenerset
+    namespace: gwapi151
+    sectionName: https-mtls
+  hostnames:
+  - "mtls.example.com"
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /
+    backendRefs:
+    - name: httpbin
+      namespace: gwapi151-httpbin
+      port: 8000

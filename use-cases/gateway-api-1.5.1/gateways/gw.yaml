@@ -1,0 +1,43 @@
+kind: Gateway
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: gw
+  namespace: gwapi151
+spec:
+  allowedListeners:
+    namespaces:
+      from: All
+  gatewayClassName: enterprise-kgateway
+  # spec.tls.frontend is a Gateway API 1.5.1 extension for client certificate
+  # validation. It is a Gateway-level field — the ListenerSet CRD does not
+  # support it. perPort scopes validation to port 443 only, so the HTTP and
+  # TLS listeners in the ListenerSet are unaffected.
+  tls:
+    frontend:
+      # default is required by the CRD even when perPort is used.
+      # AllowInsecureFallback means HTTPS listeners not matched by a perPort
+      # entry accept connections with or without a client cert — no enforcement.
+      # caCertificateRefs is required by the schema even in fallback mode.
+      default:
+        validation:
+          mode: AllowInsecureFallback
+          caCertificateRefs:
+          - name: client-ca
+            kind: ConfigMap
+            group: ""
+      perPort:
+      - port: 443
+        tls:
+          validation:
+            # AllowValidOnly rejects connections that do not present a client
+            # cert signed by one of the caCertificateRefs CAs.
+            mode: AllowValidOnly
+            caCertificateRefs:
+            - name: client-ca
+              kind: ConfigMap
+              group: ""
+  # Need at least 1 listener, even when using ListenerSets. See https://github.com/kubernetes-sigs/gateway-api/issues/4425 for a proposal to make listeners optional.
+  listeners:
+  - name: default
+    protocol: HTTP
+    port: 80

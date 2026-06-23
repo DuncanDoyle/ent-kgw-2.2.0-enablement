@@ -1,0 +1,29 @@
+apiVersion: enterprisekgateway.solo.io/v1alpha1
+kind: EnterpriseKgatewayTrafficPolicy
+metadata:
+  name: httpbin-holepunch
+  namespace: acl
+spec:
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: httpbin-holepunch
+  acl:
+    # Default allow — but the entire 10.10.0.0/16 is blocked, except for the
+    # specific host 10.10.5.100/32.
+    #
+    # ACL uses longest-prefix matching: /32 beats /16 regardless of rule order,
+    # so 10.10.5.100 is allowed even though it falls within the blocked /16.
+    defaultAction: allow
+    rules:
+    - name: block-subnet
+      cidrs:
+      - "10.10.0.0/16"
+      action: deny
+    - name: allow-exception
+      cidrs:
+      - "10.10.5.100/32"
+      action: allow
+    denyResponse:
+      statusCode: 403
+      blockedByHeaderName: X-Blocked-By

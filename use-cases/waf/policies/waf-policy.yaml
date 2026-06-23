@@ -1,0 +1,27 @@
+apiVersion: waf.solo.io/v1alpha1
+kind: WAFPolicy
+metadata:
+  name: httpbin-waf
+  namespace: waf
+spec:
+  ruleEngineSettings:
+    inline: |
+      SecRuleEngine On
+  coreRuleSet:
+    settings:
+      inline: |
+        SecDefaultAction "phase:1,log,auditlog,deny,status:403"
+        SecDefaultAction "phase:2,log,auditlog,deny,status:403"
+        SecAction "id:900990,phase:1,pass,t:none,nolog,tag:'OWASP_CRS',ver:'OWASP_CRS/4.21.0',setvar:tx.crs_setup_version=4210"
+  customDirectives:
+    - inline: |
+        # Remove rules that produce false positives in this environment.
+        # 913100: Scanner detection - flags common User-Agents such as curl.
+        # 920430: HTTP protocol version validation - fails because ExtProc does not
+        #         forward the original protocol version string to the WAF server.
+        SecRuleRemoveById 913100
+        SecRuleRemoveById 920430
+    - inline: |
+        # Block requests from a known bad bot User-Agent, layered on top of CRS.
+        SecRule REQUEST_HEADERS:User-Agent "@streq bad-bot" \
+          "deny,status:403,id:5001,phase:1,msg:'Blocked bad-bot User-Agent'"

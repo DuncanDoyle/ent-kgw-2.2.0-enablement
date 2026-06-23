@@ -1,0 +1,18 @@
+apiVersion: enterprisekgateway.solo.io/v1alpha1
+kind: EnterpriseKgatewayParameters
+metadata:
+  name: ent-kgateway-acl-params
+  namespace: kgateway-system
+spec:
+  kube:
+    sharedExtensions:
+      # ACL is evaluated inline by the Envoy proxy — no external server required.
+      # All shared extensions are disabled for this demo.
+      extCache:
+        enabled: false
+      waf:
+        enabled: false
+      ratelimiter:
+        enabled: false
+      extauth:
+        enabled: false

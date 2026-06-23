@@ -1,0 +1,19 @@
+apiVersion: ratelimit.solo.io/v1alpha1
+kind: RateLimitConfig
+metadata:
+  name: httpbin-ratelimit
+  namespace: byo-redis
+spec:
+  raw:
+    setDescriptors:
+    - simpleDescriptors:
+      - key: generic_key
+        value: httpbin-global
+      rateLimit:
+        # Allow 3 requests per minute — easy to trigger in a browser demo.
+        requestsPerUnit: 3
+        unit: MINUTE
+    rateLimits:
+    - setActions:
+      - genericKey:
+          descriptorValue: httpbin-global

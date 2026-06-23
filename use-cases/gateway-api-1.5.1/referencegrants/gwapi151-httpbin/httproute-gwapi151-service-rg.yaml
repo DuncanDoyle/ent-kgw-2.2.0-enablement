@@ -1,0 +1,13 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: ReferenceGrant
+metadata:
+  name: httproute-gwapi151-service
+  namespace: gwapi151-httpbin
+spec:
+  from:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: gwapi151
+  to:
+    - group: ""
+      kind: Service

@@ -1,0 +1,10 @@
+apiVersion: enterprisekgateway.solo.io/v1alpha1
+kind: EnterpriseKgatewayParameters
+metadata:
+  name: ent-kgateway-waf-params
+  namespace: kgateway-system
+spec:
+  kube:
+    sharedExtensions:
+      waf:
+        enabled: true

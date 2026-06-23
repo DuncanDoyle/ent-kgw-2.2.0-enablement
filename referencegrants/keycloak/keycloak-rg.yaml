@@ -1,0 +1,14 @@
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: allow-keycloak-access
+  namespace: keycloak
+spec:
+  from:
+  - group: enterprisekgateway.solo.io
+    kind: EnterpriseKgatewayTrafficPolicy
+    namespace: default
+  to:
+  - group: ""
+    kind: Service
+    name: keycloak

@@ -1,0 +1,14 @@
+apiVersion: enterprisekgateway.solo.io/v1alpha1
+kind: EnterpriseKgatewayTrafficPolicy
+metadata:
+  name: ip-filter-waf
+  namespace: waf
+spec:
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: ip-filter
+  entWAF:
+    wafPolicyRef:
+      name: ip-filter-waf
+      namespace: waf

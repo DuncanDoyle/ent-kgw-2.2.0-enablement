@@ -1,0 +1,22 @@
+apiVersion: gateway.kgateway.dev/v1alpha1
+kind: ListenerPolicy
+metadata:
+  name: xff-trust
+  namespace: acl
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: gw
+  default:
+    httpSettings:
+      # Trust the X-Forwarded-For header from the connecting client so that the
+      # ACL filter evaluates the IP carried in XFF rather than the Envoy peer
+      # address. xffNumTrustedHops: 1 strips the rightmost entry Envoy appended,
+      # leaving the original client IP for ACL evaluation.
+      #
+      # On Minikube this lets the curl-acl-demo.sh script forge -H "X-Forwarded-For:
+      # <ip>" to simulate requests from different source addresses without needing
+      # actual clients at those IPs.
+      useRemoteAddress: true
+      xffNumTrustedHops: 1

@@ -1,0 +1,175 @@
+apiVersion: enterprisekgateway.solo.io/v1alpha1
+kind: EnterpriseKgatewayParameters
+metadata:
+  name: ent-kgateway-overlays-params
+  namespace: kgateway-system
+spec:
+  kube:
+    sharedExtensions:
+      # Disable all shared extensions — this demo focuses on proxy-level customization.
+      extCache:
+        enabled: false
+      waf:
+        enabled: false
+      ratelimiter:
+        enabled: false
+      extauth:
+        enabled: false
+
+    # ===========================================================================
+    # NATIVE FIELDS
+    # These are typed, validated by the control plane, and available without
+    # writing strategic merge patches.
+    # ===========================================================================
+
+    # ---------------------------------------------------------------------------
+    # envoyContainer: configuration for the proxy container itself.
+    # Exposes: image, log levels, environment variables, resource limits, and
+    # security context.
+    # ---------------------------------------------------------------------------
+    envoyContainer:
+      resources:
+        requests:
+          cpu: "100m"
+          memory: "128Mi"
+        limits:
+          cpu: "500m"
+          memory: "256Mi"
+
+    # ---------------------------------------------------------------------------
+    # podTemplate: configuration for the proxy pod.
+    # Exposes: extra labels, extra annotations, image pull secrets, node selector,
+    # affinity, tolerations, topology spread constraints, probes, security context,
+    # extra volumes, and graceful shutdown settings.
+    # ---------------------------------------------------------------------------
+    podTemplate:
+      extraLabels:
+        team: platform-engineering
+        environment: demo
+      extraAnnotations:
+        # Prometheus pod scraping. Port 19000 is the Envoy admin/stats interface.
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "19000"
+        prometheus.io/path: "/stats/prometheus"
+
+    # ---------------------------------------------------------------------------
+    # horizontalPodAutoscaler: generates an HPA targeting the proxy Deployment.
+    # This is a first-class field in EnterpriseKgatewayParameters — not a
+    # strategic merge patch overlay. The HPA is created only when this field is
+    # present; removing it deletes the HPA.
+    #
+    # When using HPA, do not set deployment.replicas — the fixed count conflicts
+    # with HPA scaling decisions.
+    # ---------------------------------------------------------------------------
+    horizontalPodAutoscaler:
+      spec:
+        minReplicas: 1
+        maxReplicas: 3
+        metrics:
+        - type: Resource
+          resource:
+            name: cpu
+            target:
+              type: Utilization
+              averageUtilization: 80
+
+    # ---------------------------------------------------------------------------
+    # podDisruptionBudget: generates a PDB targeting the proxy Deployment.
+    # Ensures at least one proxy replica stays available during node drains,
+    # rolling updates, and cluster upgrades.
+    # Also a first-class field — only generated when present.
+    # ---------------------------------------------------------------------------
+    podDisruptionBudget:
+      spec:
+        minAvailable: 1
+
+    # ===========================================================================
+    # OVERLAY FIELDS
+    # Strategic merge patches applied after the control plane renders the resource.
+    # Use these for capabilities not exposed by the native fields above.
+    # Overlays are NOT validated at apply time — errors surface only when
+    # Kubernetes processes the resulting resource.
+    # ===========================================================================
+
+    # ---------------------------------------------------------------------------
+    # deploymentOverlay: strategic merge patch on the gateway proxy Deployment.
+    #
+    # This overlay demonstrates two capabilities with no native equivalent:
+    #
+    # 1. Init container — runs before the proxy starts. Useful for pre-flight
+    #    checks, config generation, certificate fetching, or waiting on dependencies
+    #    without modifying the proxy image.
+    #
+    # 2. Sidecar container — runs alongside the proxy, sharing its network
+    #    namespace (same localhost). Useful for custom metric collection, log
+    #    forwarding, or audit logging. The sidecar can reach Envoy's local admin
+    #    interface on localhost:19000 even though that port is not exposed to the
+    #    outside world.
+    # ---------------------------------------------------------------------------
+    deploymentOverlay:
+      spec:
+        template:
+          spec:
+            initContainers:
+            - name: preflight
+              image: busybox:stable
+              command:
+              - sh
+              - -c
+              - |
+                echo "[preflight] Overlay init container started"
+                echo "[preflight] Node : ${NODE_NAME:-unknown}"
+                echo "[preflight] Pod  : ${POD_NAME:-unknown}"
+                echo "[preflight] Time : $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+                echo "[preflight] Init complete — proxy container may start"
+              env:
+              - name: NODE_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: spec.nodeName
+              - name: POD_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+            containers:
+            # Adding a new container (not patching an existing one — no matching
+            # name in the rendered Deployment). Shares the proxy pod's network
+            # namespace: localhost resolves to the proxy's loopback interface.
+            - name: debug-sidecar
+              image: busybox:stable
+              command: [sleep, infinity]
+
+    # ---------------------------------------------------------------------------
+    # serviceOverlay: strategic merge patch on the gateway proxy Service.
+    #
+    # Use when you need to set fields not exposed by spec.kube.service, such as
+    # cloud provider load balancer spec fields. Annotations for the service can
+    # be set natively via spec.kube.service.extraAnnotations (not shown here).
+    #
+    # Cloud provider examples (not applicable on Minikube):
+    # ---------------------------------------------------------------------------
+    # serviceOverlay:
+    #   spec:
+    #     loadBalancerSourceRanges:
+    #     - 10.0.0.0/8
+    #     - 192.168.0.0/16
+    #   metadata:
+    #     annotations:
+    #       service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    #       service.beta.kubernetes.io/aws-load-balancer-internal: "true"
+    #       cloud.google.com/l4-rbs: "enabled"
+    #       service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+
+    # ---------------------------------------------------------------------------
+    # serviceAccountOverlay: strategic merge patch on the proxy ServiceAccount.
+    #
+    # Use when you need to set fields not exposed by spec.kube.serviceAccount.
+    # IAM role binding annotations for cloud providers are the primary use case;
+    # standard annotations can be set natively via spec.kube.serviceAccount.
+    #
+    # serviceAccountOverlay:
+    #   metadata:
+    #     annotations:
+    #       eks.amazonaws.com/role-arn: "arn:aws:iam::123456789012:role/gateway-role"
+    #       iam.gke.io/gcp-service-account: "gw-sa@my-project.iam.gserviceaccount.com"
+    # ---------------------------------------------------------------------------

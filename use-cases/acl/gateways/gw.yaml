@@ -1,0 +1,14 @@
+kind: Gateway
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: gw
+  namespace: acl
+spec:
+  gatewayClassName: enterprise-kgateway-acl
+  listeners:
+  - name: http
+    protocol: HTTP
+    port: 80
+    allowedRoutes:
+      namespaces:
+        from: Same

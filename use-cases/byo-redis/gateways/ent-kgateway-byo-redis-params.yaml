@@ -1,0 +1,68 @@
+apiVersion: enterprisekgateway.solo.io/v1alpha1
+kind: EnterpriseKgatewayParameters
+metadata:
+  name: ent-kgateway-byo-redis-params
+  namespace: kgateway-system
+spec:
+  kube:
+    sharedExtensions:
+      # Disable the bundled Redis (ext-cache) sidecar — we bring our own Valkey instances.
+      extCache:
+        enabled: false
+      # WAF is not needed for this demo.
+      waf:
+        enabled: false
+      ratelimiter:
+        enabled: true
+        # Point the RateLimiter at the dedicated Valkey instance in the byo-redis namespace.
+        redis:
+          address: valkey-ratelimit.byo-redis.svc.cluster.local:6379
+          # connection:
+          #   poolSize: 10
+          #   minIdleConns: 2
+          #   maxIdleConns: 5
+          #   dialTimeout: 5s
+          # socketType: tls
+          # certs:
+          #   caCertSecretRef:
+          #     name: redis-tls
+          #     namespace: kgateway-system
+          #   caCertKey: ca.crt
+          # auth:
+          #   secretRef:
+          #     name: redis-credentials
+          #     passwordKey: "redis-password"
+          #     usernameKey: "redis-username"
+          #   aws:
+          #     region: "${AWS_REGION}"
+          #     clusterName: "${CACHE_NAME}"
+          #     userName: "${DATABASE_USER}"
+          #     serverlessCacheName: "${CACHE_NAME}"   # Same value as clusterName; required for Serverless only.
+      extauth:
+        enabled: true
+        replicas: 1
+        # Point ExtAuth's session storage at the dedicated Valkey instance in the byo-redis namespace.
+        sessionRedis:
+          address: valkey-auth.byo-redis.svc.cluster.local:6379
+          # connection:
+          #   poolSize: 10
+          #   minIdleConns: 2
+          #   maxIdleConns: 5
+          #   dialTimeout: 5s
+          # socketType: tls
+          # certs:
+          #   caCertSecretRef:
+          #     name: redis-tls
+          #     namespace: kgateway-system
+          #   caCertKey: ca.crt
+          # auth:
+          #   secretRef:
+          #     name: redis-credentials
+          #     passwordKey: "redis-password"
+          #     usernameKey: "redis-username"
+          #   aws:
+          #     region: "${AWS_REGION}"
+          #     clusterName: "${CACHE_NAME}"
+          #     userName: "${DATABASE_USER}"
+          #     serverlessCacheName: "${CACHE_NAME}"   # Same value as clusterName; required for Serverless only.          
+

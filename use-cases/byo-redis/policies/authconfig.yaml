@@ -1,0 +1,41 @@
+apiVersion: extauth.solo.io/v1
+kind: AuthConfig
+metadata:
+  name: httpbin-oidc
+  namespace: byo-redis
+spec:
+  configs:
+  - name: keycloak_oidc
+    oauth2:
+      oidcAuthorizationCode:
+        appUrl: http://httpbin.example.com
+        callbackPath: /callback
+        clientId: httpbin-client
+        clientSecretRef:
+          name: oauth
+          namespace: byo-redis
+        headers:
+          idTokenHeader: id_token
+          accessTokenHeader: access_token
+        issuerUrl: http://keycloak.example.com/realms/kgateway-demo/
+        logoutPath: /logout
+        scopes:
+        - email
+        session:
+          # notSecure is required because this demo runs over plain HTTP.
+          cookieOptions:
+            notSecure: true
+            maxAge: 3600
+          failOnFetchFailure: true
+          # Tokens are stored in Valkey; only a session ID cookie is sent to the client.
+          # The Redis host is set server-wide via EnterpriseKgatewayParameters.extauth.sessionRedis
+          # and inherited here — host in options is redundant but kept for clarity.
+          # Per-AuthConfig overrides are limited to db, poolSize, and socketType.
+          redis:
+            # allowRefreshing must be explicitly set — the code defaults to false when unset,
+            # despite the proto comment saying "defaults to true". Without this, the refresh
+            # token is not stored in the session and will not appear in show-cache.sh output.
+            allowRefreshing: true
+            cookieName: httpbin-session
+            options:
+              host: valkey-auth.byo-redis.svc.cluster.local:6379
