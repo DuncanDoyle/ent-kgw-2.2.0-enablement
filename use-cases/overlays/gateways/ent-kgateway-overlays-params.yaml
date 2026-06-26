@@ -94,7 +94,7 @@ spec:
     # ---------------------------------------------------------------------------
     # deploymentOverlay: strategic merge patch on the gateway proxy Deployment.
     #
-    # This overlay demonstrates two capabilities with no native equivalent:
+    # This overlay demonstrates three capabilities with no native equivalent:
     #
     # 1. Init container — runs before the proxy starts. Useful for pre-flight
     #    checks, config generation, certificate fetching, or waiting on dependencies
@@ -105,6 +105,18 @@ spec:
     #    forwarding, or audit logging. The sidecar can reach Envoy's local admin
     #    interface on localhost:19000 even though that port is not exposed to the
     #    outside world.
+    #
+    # 3. List-item removal via the strategic-merge-patch directive language.
+    #    Overlays are strategic merge patches, so beyond adding/merging fields
+    #    they understand a small set of directives. The most useful is
+    #    "$patch: delete", which removes an element from a list (matched by its
+    #    merge key) rather than merging into it. Below we delete the
+    #    OTEL_RESOURCE_ATTRIBUTES entry from the proxy container's env list.
+    #    That variable carries only OpenTelemetry resource metadata, so removing
+    #    it does not affect request handling — it just shows how to take
+    #    something away, not only add it. (Related directives: "$patch: replace"
+    #    swaps a whole list/map, and "$deleteFromPrimitiveList/<field>" drops
+    #    entries from a scalar list such as args.)
     # ---------------------------------------------------------------------------
     deploymentOverlay:
       spec:
@@ -132,9 +144,18 @@ spec:
                   fieldRef:
                     fieldPath: metadata.name
             containers:
-            # Adding a new container (not patching an existing one — no matching
-            # name in the rendered Deployment). Shares the proxy pod's network
-            # namespace: localhost resolves to the proxy's loopback interface.
+            # Patching an EXISTING container: 'kgateway-proxy' matches the name of
+            # the rendered proxy container, so this entry merges into it rather
+            # than creating a new one. Inside it we use the "$patch: delete"
+            # directive to remove a single entry (matched by its 'name' merge key)
+            # from the container's env list — demonstrating list-item removal.
+            - name: kgateway-proxy
+              env:
+              - name: OTEL_RESOURCE_ATTRIBUTES
+                $patch: delete
+            # Adding a NEW container (no matching name in the rendered Deployment,
+            # so it is appended). Shares the proxy pod's network namespace:
+            # localhost resolves to the proxy's loopback interface.
             - name: debug-sidecar
               image: busybox:stable
               command: [sleep, infinity]

@@ -30,7 +30,7 @@ POD=$(proxy_pod)
 if [ -n "$POD" ]; then
   printf "Container resources on pod %s:\n\n" "$POD"
   kubectl get pod -n "$PROXY_NS" "$POD" \
-    -o jsonpath='{range .spec.containers[?(@.name=="kgateway")]}  requests : cpu={.resources.requests.cpu}  memory={.resources.requests.memory}{"\n"}  limits   : cpu={.resources.limits.cpu}  memory={.resources.limits.memory}{"\n"}{end}' \
+    -o jsonpath='{range .spec.containers[?(@.name=="kgateway-proxy")]}  requests : cpu={.resources.requests.cpu}  memory={.resources.requests.memory}{"\n"}  limits   : cpu={.resources.limits.cpu}  memory={.resources.limits.memory}{"\n"}{end}' \
     2>/dev/null
   printf "\n"
 else
@@ -92,6 +92,25 @@ if [ -n "$POD" ]; then
     wget -qO- http://localhost:19000/clusters 2>/dev/null \
     | head -5 \
     || printf "  (could not reach Envoy admin)\n"
+else
+  printf "  (no proxy pod found)\n"
+fi
+
+printf "\n--- [Overlay] List-Item Removal (deploymentOverlay \$patch: delete) ---\n"
+printf "The overlay deletes the OTEL_RESOURCE_ATTRIBUTES entry from the proxy\n"
+printf "container's env list. It should be absent, while other env vars remain:\n\n"
+POD=$(proxy_pod)
+if [ -n "$POD" ]; then
+  kubectl get pod -n "$PROXY_NS" "$POD" -o json 2>/dev/null \
+  | python3 -c '
+import sys, json
+data = json.load(sys.stdin)
+proxy = next(c for c in data["spec"]["containers"] if c["name"] == "kgateway-proxy")
+names = [e["name"] for e in proxy.get("env", [])]
+removed = "OTEL_RESOURCE_ATTRIBUTES" not in names
+print("  remaining env vars        :", ", ".join(names))
+print("  OTEL_RESOURCE_ATTRIBUTES  :", "REMOVED (as expected)" if removed else "STILL PRESENT (overlay not applied?)")
+'
 else
   printf "  (no proxy pod found)\n"
 fi

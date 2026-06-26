@@ -50,4 +50,4 @@ curl -si "http://${GW_IP}:${GW_PORT}/get" \
 # 6. Check the WAF server logs to see blocked request details.
 # ---------------------------------------------------------------------------
 printf "\n=== WAF server logs (last 20 lines) ===\n"
-kubectl logs -n kgateway-system deploy/waf-server-enterprise-kgateway --tail=20
+kubectl logs -n kgateway-system deploy/waf-server-enterprise-kgateway-waf --tail=20

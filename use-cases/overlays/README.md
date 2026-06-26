@@ -121,7 +121,7 @@ spec:
         minAvailable: 1
 ```
 
-### Overlay: init container and debug sidecar
+### Overlay: init container, debug sidecar, and list-item removal
 
 ```yaml
 spec:
@@ -135,14 +135,24 @@ spec:
               image: busybox:stable
               command: [sh, -c, 'echo "[preflight] Init complete"']
             containers:
-            # Adding a new container — no matching name in the rendered Deployment,
-            # so strategic merge patch appends rather than merges.
+            # Patching an EXISTING container — 'kgateway-proxy' matches the
+            # rendered proxy container, so this merges into it. The "$patch:
+            # delete" directive removes one entry (matched by its 'name' merge
+            # key) from the env list, demonstrating list-item *removal*.
+            - name: kgateway-proxy
+              env:
+              - name: OTEL_RESOURCE_ATTRIBUTES
+                $patch: delete
+            # Adding a NEW container — no matching name in the rendered
+            # Deployment, so strategic merge patch appends rather than merges.
             - name: debug-sidecar
               image: busybox:stable
               command: [sleep, infinity]
 ```
 
-> **Container name merge key:** For `containers` entries, `name` is the strategic merge key. If the name matches an existing container (e.g., `kgateway`), the patch merges into that container. If the name is new (e.g., `debug-sidecar`), Kubernetes appends a new container. This is how you distinguish sidecar injection from patching the existing proxy container.
+> **Container name merge key:** For `containers` entries, `name` is the strategic merge key. If the name matches an existing container (e.g., `kgateway-proxy`), the patch merges into that container. If the name is new (e.g., `debug-sidecar`), Kubernetes appends a new container. This is how you distinguish sidecar injection from patching the existing proxy container.
+>
+> **Strategic-merge-patch directives:** Because overlays are strategic merge patches, they support a small directive language on top of plain merging. `$patch: delete` removes a list element (matched by its merge key) or a map entry; `$patch: replace` swaps a whole list/map instead of merging into it; and `$deleteFromPrimitiveList/<field>` drops entries from a scalar list (e.g. `args`). The demo uses `$patch: delete` to strip the `OTEL_RESOURCE_ATTRIBUTES` env var — pure OpenTelemetry metadata, so request handling is unaffected.
 
 ### Overlay: serviceOverlay and serviceAccountOverlay (commented out)
 

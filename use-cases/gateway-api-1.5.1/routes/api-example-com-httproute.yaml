@@ -13,7 +13,6 @@ spec:
       kind: ListenerSet
       name: gw-listenerset
       namespace: gwapi151
-      # Bind to a specific listener in the parentRef (ListenerSet) using sectionName field.
       sectionName: http-api
   hostnames:
     - "api.example.com"
@@ -41,11 +40,3 @@ spec:
       - name: httpbin
         namespace: gwapi151-httpbin
         port: 8000      
-      # timeouts:
-      #   request: 20s
-      #   backendRequest: 7s
-      # # Delegate to another HTTPRoute
-      # - group: gateway.networking.k8s.io
-      #   kind: HTTPRoute
-      #   name: httpbin
-      #   namespace: httpbin

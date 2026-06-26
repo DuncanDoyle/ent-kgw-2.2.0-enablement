@@ -7,6 +7,13 @@ spec:
   ruleEngineSettings:
     inline: |
       SecRuleEngine On
+  # Send the request body to the WAF server so Coraza runs phase:2.
+  # Without this, only phase:1 (request headers) is evaluated and the bulk of
+  # CRS — SQL injection (942xxx) and XSS (941xxx) rules, which are phase:2 —
+  # never fires, even for payloads in the query string.
+  processingConfig:
+    request:
+      mode: HeadersAndBody
   coreRuleSet:
     settings:
       inline: |
