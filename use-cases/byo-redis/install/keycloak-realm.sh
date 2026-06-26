@@ -17,14 +17,29 @@ KEYCLOAK_URL="http://${KEYCLOAK_HOST}"
 REALM="kgateway-demo"
 CLIENT_ID="httpbin-client"
 
+# When KEYCLOAK_HOST is not directly resolvable to the gateway (e.g. it points at
+# 127.0.0.1 in /etc/hosts for browser port-forward use), set KEYCLOAK_GW_IP to
+# the gateway's LoadBalancer IP. All Keycloak admin API calls then connect to
+# that IP while preserving the Host header via curl --resolve, so the gateway's
+# HTTPRoute hostname match still works without a running port-forward.
+KEYCLOAK_GW_IP="${KEYCLOAK_GW_IP:-}"
+RESOLVE_OPT=""
+if [ -n "$KEYCLOAK_GW_IP" ]; then
+  RESOLVE_OPT="--resolve ${KEYCLOAK_HOST}:80:${KEYCLOAK_GW_IP}"
+fi
+
+# curl wrapper that injects --resolve when KEYCLOAK_GW_IP is set.
+kc_curl() { curl ${RESOLVE_OPT} "$@"; }
+
 echo "Keycloak URL : $KEYCLOAK_URL"
 echo "Realm        : $REALM"
 echo "Client       : $CLIENT_ID"
+[ -n "$KEYCLOAK_GW_IP" ] && echo "Gateway IP   : $KEYCLOAK_GW_IP (via curl --resolve)"
 
 # ---------------------------------------------------------------------------
 # Obtain admin token from the master realm.
 # ---------------------------------------------------------------------------
-KEYCLOAK_TOKEN=$(curl -sf \
+KEYCLOAK_TOKEN=$(kc_curl -sf \
   -d "client_id=admin-cli" \
   -d "username=admin" \
   -d "password=${KC_ADMIN_PASS}" \
@@ -38,7 +53,7 @@ KEYCLOAK_TOKEN=$(curl -sf \
 # Create realm (idempotent — ignore 409 conflict if it already exists).
 # ---------------------------------------------------------------------------
 printf "\nCreating realm '%s' ...\n" "$REALM"
-STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+STATUS=$(kc_curl -s -o /dev/null -w "%{http_code}" \
   -X POST \
   -H "Authorization: Bearer ${KEYCLOAK_TOKEN}" \
   -H "Content-Type: application/json" \
@@ -60,7 +75,7 @@ fi
 # ---------------------------------------------------------------------------
 printf "\nRegistering OIDC client '%s' ...\n" "$CLIENT_ID"
 
-STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+STATUS=$(kc_curl -s -o /dev/null -w "%{http_code}" \
   -X POST \
   -H "Authorization: Bearer ${KEYCLOAK_TOKEN}" \
   -H "Content-Type: application/json" \
@@ -84,7 +99,7 @@ else
 fi
 
 # Look up the client's internal UUID and retrieve its generated secret.
-REG_ID=$(curl -sf \
+REG_ID=$(kc_curl -sf \
   -H "Authorization: Bearer ${KEYCLOAK_TOKEN}" \
   "${KEYCLOAK_URL}/admin/realms/${REALM}/clients?clientId=${CLIENT_ID}" | jq -r '.[0].id')
 
@@ -93,7 +108,7 @@ REG_ID=$(curl -sf \
 
 printf "Client UUID   : %s\n" "$REG_ID"
 
-CLIENT_SECRET=$(curl -sf \
+CLIENT_SECRET=$(kc_curl -sf \
   -H "Authorization: Bearer ${KEYCLOAK_TOKEN}" \
   "${KEYCLOAK_URL}/admin/realms/${REALM}/clients/${REG_ID}/client-secret" | jq -r '.value')
 
@@ -104,7 +119,7 @@ CLIENT_SECRET=$(curl -sf \
 # Create demo user: user1 / password
 # ---------------------------------------------------------------------------
 printf "\nCreating demo user 'user1' ...\n"
-STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+STATUS=$(kc_curl -s -o /dev/null -w "%{http_code}" \
   -X POST \
   -H "Authorization: Bearer ${KEYCLOAK_TOKEN}" \
   -H "Content-Type: application/json" \

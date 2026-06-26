@@ -68,9 +68,24 @@ kubectl apply -f routes/keycloak-httproute.yaml
 # Step 8: Set up Keycloak realm, client, and demo user.
 # Creates the kgateway-demo realm with httpbin-client and user1/password,
 # then stores the client secret as a K8s Secret in the byo-redis namespace.
+#
+# Keycloak is reached through the byo-redis gateway at keycloak.example.com.
+# That hostname typically points at 127.0.0.1 in /etc/hosts (for browser
+# port-forward use), which can't work here because no port-forward is running
+# yet. Instead, discover the gateway's LoadBalancer IP and pass it to the realm
+# script, which connects to it directly via curl --resolve.
 # ---------------------------------------------------------------------------
+printf "\nWaiting for Gateway to get an address (needed to reach Keycloak) ...\n"
+kubectl wait gateway/gw -n byo-redis --for=condition=Programmed --timeout=120s
+GW_IP=$(kubectl get gateway gw -n byo-redis -o jsonpath='{.status.addresses[0].value}')
+if [ -z "$GW_IP" ]; then
+  echo "ERROR: Could not determine Gateway IP; cannot reach Keycloak to set up the realm."
+  exit 1
+fi
+printf "Gateway IP for Keycloak access: %s\n" "$GW_IP"
+
 printf "\nSet up Keycloak realm (kgateway-demo) ...\n"
-bash install/keycloak-realm.sh
+KEYCLOAK_GW_IP="$GW_IP" bash install/keycloak-realm.sh
 
 # ---------------------------------------------------------------------------
 # Step 9: Deploy the AuthConfig (OIDC authorization code flow with Redis session).

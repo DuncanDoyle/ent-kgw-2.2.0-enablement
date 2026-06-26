@@ -37,5 +37,6 @@ spec:
             # token is not stored in the session and will not appear in show-cache.sh output.
             allowRefreshing: true
             cookieName: httpbin-session
-            options:
-              host: valkey-auth.byo-redis.svc.cluster.local:6379
+            # Redis host is set server-wide via EnterpriseKgatewayParameters.extauth.sessionRedis and inherited here.
+            # options:
+            #   host: valkey-auth.byo-redis.svc.cluster.local:6379
